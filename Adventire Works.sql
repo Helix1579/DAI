@@ -1,3 +1,4 @@
+-- database: :memory:
 USE [AdventureWorksDWH]
 
 CREATE SCHEMA STAGE;
@@ -17,8 +18,9 @@ CREATE TABLE
     STAGE.DimEmployee (
         EmployeeId INT,
         EmployeeName NVARCHAR (255) NOT NULL,
-        Store NVARCHAR (255),
-        Region NVARCHAR (100),
+		Title VARCHAR(255),
+        City VARCHAR (255),
+		Country VARCHAR (255),
         CONSTRAINT PK_DimEmployee PRIMARY KEY (EmployeeId)
     );
 
@@ -57,9 +59,11 @@ CREATE TABLE
         CustomerId INT,
         EmployeeId INT,
         ProductId INT,
-        DateId INT,
+		OrderId INT,
         Quantity INT NOT NULL,
-        Price MONEY NOT NULL,
+        UnitPrice MONEY NOT NULL,
+		LineTotal MONEY NOT NULL,
+		OrderDate DATE NOT NUll,
         CONSTRAINT PK_FactSale PRIMARY KEY (SaleKey)
     );
 
@@ -180,47 +184,56 @@ GO
 DROP TABLE [AdventureWorksDWH].STAGE.FactSale
 
 --Loading DimEmployee
-INSERT INTO AdventureWorksDWH.STAGE.DimEmployee (
-    EmployeeId,
-    EmployeeName,
-    Store,
-    Region
-)
+INSERT INTO 
+	AdventureWorksDWH.STAGE.DimEmployee (
+		EmployeeId,
+		EmployeeName,
+		Title,
+		City,
+		Country
+	)
 SELECT 
-    p.BusinessEntityID AS EmployeeId, 
-    CONCAT(p.FirstName, ' ', p.LastName) AS EmployeeName,
-    s.Name AS Store,
-    st.Name AS Region
-FROM AdventureWorks2019.Person.Person p
-LEFT JOIN AdventureWorks2019.Sales.SalesPerson sp ON p.BusinessEntityID = sp.BusinessEntityID
-LEFT JOIN AdventureWorks2019.Sales.Store s ON sp.BusinessEntityID = s.SalesPersonID
-LEFT JOIN AdventureWorks2019.Person.BusinessEntityAddress bea ON p.BusinessEntityID = bea.BusinessEntityID
-LEFT JOIN AdventureWorks2019.Person.Address a ON bea.AddressID = a.AddressID
-LEFT JOIN AdventureWorks2019.Person.StateProvince st ON a.StateProvinceID = st.StateProvinceID;
-
+    hrEmployeeTable.BusinessEntityID AS EmployeeId, 
+    CONCAT(personTable.FirstName, ' ', personTable.LastName) AS EmployeeName,
+	hrEmployeeTable.JobTitle AS Title,
+	personAddressTable.City AS City,
+	countryRegionTable.Name
+FROM 
+	AdventureWorks2019.HumanResources.Employee hrEmployeeTable
+	INNER JOIN AdventureWorks2019.Person.Person personTable ON personTable.BusinessEntityID = hrEmployeeTable.BusinessEntityID
+	INNER JOIN AdventureWorks2019.Person.BusinessEntityAddress businessEntityAddressTable ON hrEmployeeTable.BusinessEntityID = businessEntityAddressTable.BusinessEntityID
+	INNER JOIN AdventureWorks2019.Person.Address personAddressTable ON personAddressTable.AddressID = businessEntityAddressTable.AddressID
+	INNER JOIN AdventureWorks2019.Person.StateProvince stateProvinceTable ON personAddressTable.StateProvinceID = stateProvinceTable.StateProvinceID
+	INNER JOIN AdventureWorks2019.Person.CountryRegion countryRegionTable ON countryRegionTable.CountryRegionCode = stateProvinceTable.CountryRegionCode
+	WHERE personTable.PersonType LIKE 'EM' OR personTable.PersonType LIKE 'SP'
 GO
 
 -- Loading Facts Table
 
-INSERT INTO AdventureWorksDWH.STAGE.FactSale (
-    CustomerId,
-    EmployeeId,
-    ProductId,
-    DateId,
-    Quantity,
-    Price
-)
+INSERT INTO
+	AdventureWorksDWH.STAGE.FactSale(
+        CustomerId,
+        EmployeeId,
+        ProductId,
+        OrderId,
+        Quantity,
+        UnitPrice,
+        LineTotal,
+        OrderDate
+	)
 SELECT
-    c.CustomerId,
-    ISNULL(e.EmployeeId, 0) AS EmployeeId,  -- Handling cases where there's no employee
-    p.ProductId,
-    d.DateId,
-    sod.OrderQty AS Quantity,
-    sod.UnitPrice AS Price
-FROM AdventureWorks2019.Sales.SalesOrderDetail sod
-LEFT JOIN AdventureWorks2019.Sales.SalesOrderHeader soh ON sod.SalesOrderID = soh.SalesOrderID
-LEFT JOIN AdventureWorksDWH.STAGE.DimCustomer c ON soh.CustomerID = c.CustomerId
-LEFT JOIN AdventureWorksDWH.STAGE.DimEmployee e ON soh.SalesPersonID = e.EmployeeId
-LEFT JOIN AdventureWorksDWH.STAGE.DimProduct p ON sod.ProductID = p.ProductId
-LEFT JOIN AdventureWorksDWH.STAGE.DimDate d ON d.DateId = 
-    YEAR(soh.OrderDate) * 10000 + MONTH(soh.OrderDate) * 100 + DAY(soh.OrderDate);
+	c.CustomerId AS CustomerId,
+	e.EmployeeId AS EmployeeId,
+	p.ProductId AS ProductId,
+	sod.SalesOrderID AS OrderId,
+	sod.OrderQty AS Quantity,
+	sod.UnitPrice AS UnitPrice,
+	sod.LineTotal AS LineTotal,
+	soh.OrderDate AS OrderDate
+FROM 
+	AdventureWorks2019.Sales.SalesOrderHeader soh
+	LEFT JOIN AdventureWorks2019.Sales.SalesOrderDetail  sod ON soh.SalesOrderID = sod.SalesOrderID
+	INNER JOIN AdventureWorksDWH.STAGE.DimCustomer AS c ON c.CustomerId = soh.CustomerID
+	INNER JOIN AdventureWorksDWH.STAGE.DimEmployee AS e ON e.EmployeeId = soh.SalesPersonID
+	INNER JOIN AdventureWorksDWH.STAGE.DimProduct AS p ON p.ProductId = sod.ProductID
+GO
