@@ -1,18 +1,20 @@
-CREATE Schema AdventureWorksDWH_DAI;
+USE [AdventureWorksDWH]
 
-Go
+CREATE SCHEMA STAGE;
+GO
 
 -- Create DimCustomer Table
 CREATE TABLE
-    AdventureWorksDWH_DAI.DimCustomer (
+    STAGE.DimCustomer (
         CustomerId INT,
         CustomerName NVARCHAR (255) NOT NULL,
         CONSTRAINT PK_DimCustomer PRIMARY KEY (CustomerId)
     );
+GO
 
 -- Create DimEmployee Table
 CREATE TABLE
-    AdventureWorksDWH_DAI.DimEmployee (
+    STAGE.DimEmployee (
         EmployeeId INT,
         EmployeeName NVARCHAR (255) NOT NULL,
         Store NVARCHAR (255),
@@ -23,7 +25,7 @@ CREATE TABLE
 GO
 -- Create DimProduct Table
 CREATE TABLE
-    AdventureWorksDWH_DAI.DimProduct (
+    STAGE.DimProduct (
         ProductId INT,
         ProductName NVARCHAR (255) NOT NULL,
         ProductCategory NVARCHAR (100),
@@ -33,10 +35,8 @@ CREATE TABLE
 
 GO
 
-Drop table AdventureWorksDWH_DAI.DimDate
-
 -- Create DimDate Table
-CREATE TABLE AdventureWorksDWH_DAI.DimDate (
+CREATE TABLE STAGE.DimDate (
     DateId INT NOT NULL,
     Day INT NOT NULL,
     Month INT NOT NULL,
@@ -52,7 +52,7 @@ GO
 
 -- Create FactSale Table
 CREATE TABLE
-    AdventureWorksDWH_DAI.FactSale (
+    STAGE.FactSale (
         SaleKey INT IDENTITY (1, 1),
         CustomerId INT,
         EmployeeId INT,
@@ -65,42 +65,42 @@ CREATE TABLE
 
 GO
 -- Remove Previous Primary Keys to add new ones
-ALTER TABLE AdventureWorksDWH_DAI.DimCustomer
+ALTER TABLE STAGE.DimCustomer
 DROP CONSTRAINT PK_DimCustomer;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimEmployee
+ALTER TABLE STAGE.DimEmployee
 DROP CONSTRAINT PK_DimEmployee;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimProduct
+ALTER TABLE STAGE.DimProduct
 DROP CONSTRAINT PK_DimProduct;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimDate
+ALTER TABLE STAGE.DimDate
 DROP CONSTRAINT PK_DimDate;
 
 GO
 -- Adding New Primary Keys
-ALTER TABLE AdventureWorksDWH_DAI.DimCustomer ADD CustomerKey INT IDENTITY (1, 1) PRIMARY KEY;
+ALTER TABLE STAGE.DimCustomer ADD CustomerKey INT IDENTITY (1, 1) PRIMARY KEY;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimEmployee ADD EmployeeKey INT IDENTITY (1, 1) PRIMARY KEY;
+ALTER TABLE STAGE.DimEmployee ADD EmployeeKey INT IDENTITY (1, 1) PRIMARY KEY;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimProduct ADD ProductKey INT IDENTITY (1, 1) PRIMARY KEY;
+ALTER TABLE STAGE.DimProduct ADD ProductKey INT IDENTITY (1, 1) PRIMARY KEY;
 
-ALTER TABLE AdventureWorksDWH_DAI.DimDate ADD DateKey INT IDENTITY (1, 1) PRIMARY KEY;
+ALTER TABLE STAGE.DimDate ADD DateKey INT IDENTITY (1, 1) PRIMARY KEY;
 
 -- Creating Indexes For Queries
-CREATE INDEX IX_FactSale_Customer ON AdventureWorksDWH_DAI.FactSale (CustomerId);
+CREATE INDEX IX_FactSale_Customer ON STAGE.FactSale (CustomerId);
 
-CREATE INDEX IX_FactSale_Employee ON AdventureWorksDWH_DAI.FactSale (EmployeeId);
+CREATE INDEX IX_FactSale_Employee ON STAGE.FactSale (EmployeeId);
 
-CREATE INDEX IX_FactSale_Product ON AdventureWorksDWH_DAI.FactSale (ProductId);
+CREATE INDEX IX_FactSale_Product ON STAGE.FactSale (ProductId);
 
-CREATE INDEX IX_FactSale_Date ON AdventureWorksDWH_DAI.FactSale (DateId);
+CREATE INDEX IX_FactSale_Date ON STAGE.FactSale (DateId);
 
-CREATE INDEX IX_DimCustomer_Name ON AdventureWorksDWH_DAI.DimCustomer (CustomerName);
+CREATE INDEX IX_DimCustomer_Name ON STAGE.DimCustomer (CustomerName);
 
-CREATE INDEX IX_DimEmployee_Name ON AdventureWorksDWH_DAI.DimEmployee (EmployeeName);
+CREATE INDEX IX_DimEmployee_Name ON STAGE.DimEmployee (EmployeeName);
 
-CREATE INDEX IX_DimProduct_Name ON AdventureWorksDWH_DAI.DimProduct (ProductName);
+CREATE INDEX IX_DimProduct_Name ON STAGE.DimProduct (ProductName);
 
 
 --Adding Date Data
@@ -115,7 +115,7 @@ SET @EndDate = DATEADD(YEAR, 100, GETDATE());  -- Set end date to 100 years from
 WHILE @StartDate <= @EndDate
 BEGIN
     -- Insert the date and its associated values into DimDate
-    INSERT INTO AdventureWorksDWH_DAI.[DimDate] 
+    INSERT INTO STAGE.[DimDate] 
         ([DateId], 
          [Day], 
          [Month], 
@@ -140,3 +140,87 @@ BEGIN
     SET @StartDate = DATEADD(DAY, 1, @StartDate);
 END
 GO
+
+
+
+--INSERTING DATA INTO STAGING
+
+-- Loading DimCustomer
+INSERT INTO [AdventureWorksDWH].STAGE.DimCustomer (CustomerId, CustomerName)
+SELECT C.CustomerId,CASE
+		WHEN p.MiddleName Is NOT NULL THEN p.FirstName + ' ' + p.MiddleName + ' ' + p.LastName
+		ELSE p.FirstName + ' ' + p.LastName
+	END
+FROM
+	[AdventureWorks2019].Sales.Customer c
+	INNER JOIN [AdventureWorks2019].Person.Person p ON p.BusinessEntityID = c.PersonID;
+
+GO
+
+
+--Loading DimProduct
+INSERT INTO
+	AdventureWorksDWH.STAGE.DimProduct (
+		ProductId,
+		ProductName,
+		ProductCategory,
+		Price
+	)
+SELECT
+	p.ProductID,
+	p.Name AS ProductName,
+	pc.Name AS ProductCategory,
+	p.ListPrice AS UnitPrice
+FROM
+	AdventureWorks2019.Production.Product p
+	INNER JOIN AdventureWorks2019.Production.ProductSubcategory sc ON p.ProductSubcategoryID = sc.ProductSubcategoryID
+	INNER JOIN AdventureWorks2019.Production.ProductCategory pc ON sc.ProductCategoryID = pc.ProductCategoryID;
+GO
+
+DROP TABLE [AdventureWorksDWH].STAGE.FactSale
+
+--Loading DimEmployee
+INSERT INTO AdventureWorksDWH.STAGE.DimEmployee (
+    EmployeeId,
+    EmployeeName,
+    Store,
+    Region
+)
+SELECT 
+    p.BusinessEntityID AS EmployeeId, 
+    CONCAT(p.FirstName, ' ', p.LastName) AS EmployeeName,
+    s.Name AS Store,
+    st.Name AS Region
+FROM AdventureWorks2019.Person.Person p
+LEFT JOIN AdventureWorks2019.Sales.SalesPerson sp ON p.BusinessEntityID = sp.BusinessEntityID
+LEFT JOIN AdventureWorks2019.Sales.Store s ON sp.BusinessEntityID = s.SalesPersonID
+LEFT JOIN AdventureWorks2019.Person.BusinessEntityAddress bea ON p.BusinessEntityID = bea.BusinessEntityID
+LEFT JOIN AdventureWorks2019.Person.Address a ON bea.AddressID = a.AddressID
+LEFT JOIN AdventureWorks2019.Person.StateProvince st ON a.StateProvinceID = st.StateProvinceID;
+
+GO
+
+-- Loading Facts Table
+
+INSERT INTO AdventureWorksDWH.STAGE.FactSale (
+    CustomerId,
+    EmployeeId,
+    ProductId,
+    DateId,
+    Quantity,
+    Price
+)
+SELECT
+    c.CustomerId,
+    ISNULL(e.EmployeeId, 0) AS EmployeeId,  -- Handling cases where there's no employee
+    p.ProductId,
+    d.DateId,
+    sod.OrderQty AS Quantity,
+    sod.UnitPrice AS Price
+FROM AdventureWorks2019.Sales.SalesOrderDetail sod
+LEFT JOIN AdventureWorks2019.Sales.SalesOrderHeader soh ON sod.SalesOrderID = soh.SalesOrderID
+LEFT JOIN AdventureWorksDWH.STAGE.DimCustomer c ON soh.CustomerID = c.CustomerId
+LEFT JOIN AdventureWorksDWH.STAGE.DimEmployee e ON soh.SalesPersonID = e.EmployeeId
+LEFT JOIN AdventureWorksDWH.STAGE.DimProduct p ON sod.ProductID = p.ProductId
+LEFT JOIN AdventureWorksDWH.STAGE.DimDate d ON d.DateId = 
+    YEAR(soh.OrderDate) * 10000 + MONTH(soh.OrderDate) * 100 + DAY(soh.OrderDate);
