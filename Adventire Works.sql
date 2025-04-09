@@ -1,5 +1,6 @@
 -- database: :memory:
 USE [AdventureWorksDWH]
+GO
 
 CREATE SCHEMA STAGE;
 GO
@@ -60,6 +61,7 @@ CREATE TABLE
         EmployeeId INT,
         ProductId INT,
 		OrderId INT,
+		DateId DATE,
         Quantity INT NOT NULL,
         UnitPrice MONEY NOT NULL,
 		LineTotal MONEY NOT NULL,
@@ -180,8 +182,6 @@ FROM
 	INNER JOIN AdventureWorks2019.Production.ProductSubcategory sc ON p.ProductSubcategoryID = sc.ProductSubcategoryID
 	INNER JOIN AdventureWorks2019.Production.ProductCategory pc ON sc.ProductCategoryID = pc.ProductCategoryID;
 GO
-
-DROP TABLE [AdventureWorksDWH].STAGE.FactSale
 
 --Loading DimEmployee
 INSERT INTO 
