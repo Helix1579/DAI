@@ -184,5 +184,5 @@ INSERT INTO
 		INNER JOIN AdventureWorksDWH.EDW.DimCustomer AS c ON c.CustomerId = f.CustomerID
 		INNER JOIN AdventureWorksDWH.EDW.DimEmployee AS e ON e.EmployeeId = f.EmployeeId
 		INNER JOIN AdventureWorksDWH.EDW.DimProduct AS p ON p.ProductId = f.ProductID
-		INNER JOIN AdventureWorksDWH.EDW.DimDate as d ON d.DateId = f.OrderDate
+		INNER JOIN AdventureWorksDWH.EDW.DimDate as d ON d.Date = f.OrderDate
 GO
