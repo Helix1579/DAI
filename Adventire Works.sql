@@ -24,8 +24,8 @@ CREATE TABLE
 		Country VARCHAR (255),
         CONSTRAINT PK_DimEmployee PRIMARY KEY (EmployeeId)
     );
-
 GO
+
 -- Create DimProduct Table
 CREATE TABLE
     STAGE.DimProduct (
@@ -35,7 +35,6 @@ CREATE TABLE
         Price MONEY,
         CONSTRAINT PK_DimProduct PRIMARY KEY (ProductId)
     );
-
 GO
 
 -- Create DimDate Table
@@ -68,8 +67,8 @@ CREATE TABLE
 		OrderDate DATE NOT NUll,
         CONSTRAINT PK_FactSale PRIMARY KEY (SaleKey)
     );
-
 GO
+
 -- Remove Previous Primary Keys to add new ones
 ALTER TABLE STAGE.DimCustomer
 DROP CONSTRAINT PK_DimCustomer;
@@ -150,7 +149,6 @@ GO
 
 
 --INSERTING DATA INTO STAGING
-
 -- Loading DimCustomer
 INSERT INTO [AdventureWorksDWH].STAGE.DimCustomer (CustomerId, CustomerName)
 SELECT C.CustomerId,CASE
@@ -200,16 +198,20 @@ SELECT
 	countryRegionTable.Name
 FROM 
 	AdventureWorks2019.HumanResources.Employee hrEmployeeTable
-	INNER JOIN AdventureWorks2019.Person.Person personTable ON personTable.BusinessEntityID = hrEmployeeTable.BusinessEntityID
-	INNER JOIN AdventureWorks2019.Person.BusinessEntityAddress businessEntityAddressTable ON hrEmployeeTable.BusinessEntityID = businessEntityAddressTable.BusinessEntityID
-	INNER JOIN AdventureWorks2019.Person.Address personAddressTable ON personAddressTable.AddressID = businessEntityAddressTable.AddressID
-	INNER JOIN AdventureWorks2019.Person.StateProvince stateProvinceTable ON personAddressTable.StateProvinceID = stateProvinceTable.StateProvinceID
-	INNER JOIN AdventureWorks2019.Person.CountryRegion countryRegionTable ON countryRegionTable.CountryRegionCode = stateProvinceTable.CountryRegionCode
+	INNER JOIN AdventureWorks2019.Person.Person personTable ON 
+        personTable.BusinessEntityID = hrEmployeeTable.BusinessEntityID
+	INNER JOIN AdventureWorks2019.Person.BusinessEntityAddress businessEntityAddressTable ON 
+        hrEmployeeTable.BusinessEntityID = businessEntityAddressTable.BusinessEntityID
+	INNER JOIN AdventureWorks2019.Person.Address personAddressTable ON 
+        personAddressTable.AddressID = businessEntityAddressTable.AddressID
+	INNER JOIN AdventureWorks2019.Person.StateProvince stateProvinceTable ON 
+        personAddressTable.StateProvinceID = stateProvinceTable.StateProvinceID
+	INNER JOIN AdventureWorks2019.Person.CountryRegion countryRegionTable ON 
+        countryRegionTable.CountryRegionCode = stateProvinceTable.CountryRegionCode
 	WHERE personTable.PersonType LIKE 'EM' OR personTable.PersonType LIKE 'SP'
 GO
 
 -- Loading Facts Table
-
 INSERT INTO
 	AdventureWorksDWH.STAGE.FactSale(
         CustomerId,

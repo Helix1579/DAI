@@ -4,6 +4,7 @@ GO
 CREATE SCHEMA EDW;
 GO
 
+-- Create DimCustomer Table
 CREATE TABLE
     AdventureWorksDWH.EDW.DimCustomer (
         CustomerId INT,
@@ -22,8 +23,8 @@ CREATE TABLE
 		Country VARCHAR (255),
         CONSTRAINT PK_DimEmployee PRIMARY KEY (EmployeeId)
     );
-
 GO
+
 -- Create DimProduct Table
 CREATE TABLE
     AdventureWorksDWH.EDW.DimProduct (
@@ -33,25 +34,26 @@ CREATE TABLE
         Price MONEY,
         CONSTRAINT PK_DimProduct PRIMARY KEY (ProductId)
     );
-
 GO
 
 -- Create DimDate Table
-CREATE TABLE AdventureWorksDWH.EDW.DimDate (
-    DateId INT NOT NULL,
-    Date DATETIME NOT NULL,
-    Day INT NOT NULL,
-    Month INT NOT NULL,
-    Year INT NOT NULL,
-    MonthName NVARCHAR(9) NOT NULL,
-    Week INT NOT NULL,
-    Quarter INT NOT NULL,
-    DayOfWeek INT NOT NULL,
-    WeekdayName NVARCHAR(9) NOT NULL,
-    CONSTRAINT PK_DimDate PRIMARY KEY (DateId)
+CREATE TABLE 
+    AdventureWorksDWH.EDW.DimDate (
+        DateId INT NOT NULL,
+        Date DATETIME NOT NULL,
+        Day INT NOT NULL,
+        Month INT NOT NULL,
+        Year INT NOT NULL,
+        MonthName NVARCHAR(9) NOT NULL,
+        Week INT NOT NULL,
+        Quarter INT NOT NULL,
+        DayOfWeek INT NOT NULL,
+        WeekdayName NVARCHAR(9) NOT NULL,
+        CONSTRAINT PK_DimDate PRIMARY KEY (DateId)
 );
 GO
 
+-- Create FactSale Table
 CREATE TABLE
     AdventureWorksDWH.EDW.FactSale (
         SaleKey INT IDENTITY (1, 1) PRIMARY KEY,
@@ -67,7 +69,6 @@ CREATE TABLE
     );
 GO
 
--- Create FactSale Table
 --Adding Date Data
 DECLARE @StartDate DATETIME;
 DECLARE @EndDate DATETIME;
@@ -122,7 +123,7 @@ INSERT INTO
 		AdventureWorksDWH.STAGE.DimCustomer
 GO
         
-
+-- Insert Data into DimEmployee Table
 INSERT INTO 
 	AdventureWorksDWH.EDW.DimEmployee (
 		EmployeeId,
@@ -141,6 +142,7 @@ INSERT INTO
         AdventureWorksDWH.STAGE.DimEmployee;
 GO
 
+--Insert Data into DimProduct Table
 INSERT INTO
 	AdventureWorksDWH.EDW.DimProduct (
 		ProductId,
@@ -157,6 +159,7 @@ INSERT INTO
 		AdventureWorksDWH.STAGE.DimProduct
 GO
 
+--Insert Data into FactSale Table
 INSERT INTO
     AdventureWorksDWH.EDW.FactSale (
         CustomerId,
