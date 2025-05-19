@@ -471,3 +471,175 @@ FROM AdventureWorks2019.Sales.SalesOrderHeader soh
 	INNER JOIN AdventureWorksDWH.STAGE.DimProduct DP ON DP.ProductId = sod.ProductID
 	WHERE soh.OrderDate > (@LastLoadDate)
 GO
+
+INSERT INTO EDW.FactSale
+	(
+		CustomerId,
+		EmployeeId,
+		ProductId,
+		DateId,
+		OrderId,
+		Quantity,
+		UnitPrice,
+		LineTotal,
+		OrderDate
+	)
+	SELECT
+	EDWCustomer.CustomerId,
+	EDWEmployee.EmployeeId,
+	EDWProduct.ProductId,
+	EDWDate.DateId,
+	StageFactSale.OrderId,
+	StageFactSale.Quantity,
+	StageFactSale.UnitPrice,
+	StageFactSale.LineTotal,
+	StageFactSale.OrderDate
+
+	FROM STAGE.FactSale AS StageFactSale
+
+	LEFT JOIN EDW.DimCustomer AS EDWCustomer
+	ON EDWCustomer.CustomerId = StageFactSale.CustomerId
+
+	LEFT JOIN EDW.DimEmployee AS EDWEmployee
+	ON EDWEmployee.EmployeeId = StageFactSale.EmployeeId
+
+	LEFT JOIN EDW.DimProduct AS EDWProduct
+	ON EDWProduct.ProductId = StageFactSale.ProductId
+
+	LEFT JOIN EDW.DimDate AS EDWDate
+	ON EDWDate.Date = StageFactSale.OrderDate
+
+	WHERE EDWProduct.ValidTo = 20991231
+		AND EDWCustomer.ValidTo = 20991231
+		AND EDWEmployee.ValidTo = 20991231
+GO
+
+DECLARE @LastLoadDate INT
+	SET @LastLoadDate = (SELECT MAX(LastUpdate) FROM ETL.LogUpdate WHERE [Table] = 'DimCustomer')
+DECLARE @NewLoadDate INT
+    SET @NewLoadDate = CONVERT(CHAR(8), GETDATE(), 112)
+DECLARE @FutureDate INT
+    SET @FutureDate = 20991231
+
+SELECT CustomerId, CustomerName 
+INTO #temp 
+FROM STAGE.DimCustomer AS S
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM EDW.DimCustomer AS E
+    WHERE S.CustomerId = E.CustomerId
+      AND S.CustomerName = E.CustomerName
+      AND E.ValidTo = 20991231
+)
+
+Drop table if EXISTS #temp
+
+Select * from #temp
+
+
+INSERT INTO EDW.DimCustomer 
+	(
+		CustomerId,
+		CustomerName,
+		ValidTo,
+		ValidFrom
+	)
+	SELECT 
+		CustomerId,
+		CustomerName,
+		@NewLoadDate,
+		@FutureDate
+	FROM #temp
+
+UPDATE EDW.DimCustomer SET ValidTo = @NewLoadDate-1
+	WHERE CustomerId IN (SELECT CustomerId FROM #temp) AND EDW.DimCustomer.ValidFrom < @NewLoadDate
+GO
+
+DECLARE @LastLoadDate INT
+	SET @LastLoadDate = (SELECT MAX(LastUpdate) FROM ETL.LogUpdate WHERE [Table] = 'DimEmployee')
+DECLARE @NewLoadDate INT
+    SET @NewLoadDate = CONVERT(CHAR(8), GETDATE(), 112)
+DECLARE @FutureDate INT
+    SET @FutureDate = 20991231
+
+SELECT EmployeeId, EmployeeName, Title, City, Country
+	INTO #temp 
+	FROM STAGE.DimEmployee S
+	WHERE NOT EXISTS (
+		SELECT 1 
+		FROM EDW.DimEmployee AS E
+		WHERE S.EmployeeId = E.EmployeeId
+		  AND S.EmployeeName= E.EmployeeName
+		  AND S.City = E.City
+		  AND S.Country = E.Country
+		  ANd S.Title = E.Title 
+		  AND E.ValidTo = 20991231
+)
+
+INSERT INTO EDW.DimEmployee 
+	(
+		EmployeeId,
+		EmployeeName,
+		Title,
+		City,
+		Country,
+		ValidTo,
+		ValidFrom
+	)
+	SELECT 
+		EmployeeId,
+		EmployeeName,
+		Title,
+		City,
+		Country,
+		@NewLoadDate,
+		@FutureDate
+	FROM #temp
+
+UPDATE EDW.DimEmployee SET ValidTo = @NewLoadDate-1
+	WHERE EmployeeId IN (SELECT EmployeeId FROM #temp) AND EDW.DimEmployee.ValidFrom < @NewLoadDate
+GO
+
+Drop table if EXISTS #temp
+
+DECLARE @LastLoadDate INT
+	SET @LastLoadDate = (SELECT MAX(LastUpdate) FROM ETL.LogUpdate WHERE [Table] = 'DimProduct')
+DECLARE @NewLoadDate INT
+    SET @NewLoadDate = CONVERT(CHAR(8), GETDATE(), 112)
+DECLARE @FutureDate INT
+    SET @FutureDate = 20991231
+
+SELECT ProductId, ProductName, ProductCategory,Price
+	INTO #temp 
+	FROM STAGE.DimProduct S
+	WHERE NOT EXISTS (
+		SELECT 1 
+		FROM EDW.DimProduct E
+		WHERE S.ProductId = E.ProductId
+		  AND S.ProductName= E.ProductName
+		  AND S.ProductCategory = E.ProductCategory
+		  AND S.Price = E.Price 
+		  AND E.ValidTo = 20991231
+)
+
+INSERT INTO EDW.DimProduct
+	(
+		ProductId,
+		ProductName,
+		ProductCategory,
+		Price,
+		ValidTo,
+		ValidFrom
+	)
+	SELECT 
+		ProductId,
+		ProductName,
+		ProductCategory,
+		Price,
+		@NewLoadDate,
+		@FutureDate
+	FROM #temp
+
+UPDATE EDW.DimProduct SET ValidTo = @NewLoadDate-1
+	WHERE ProductId IN (SELECT ProductId FROM #temp) AND EDW.DimProduct.ValidFrom < @NewLoadDate
+GO
