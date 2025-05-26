@@ -6,7 +6,7 @@ GO
 
 -- Create DimCustomer Table
 CREATE TABLE
-    AdventureWorksDWH.EDW.DimCustomer (
+    EDW.DimCustomer (
         CustomerId INT,
         CustomerName NVARCHAR (255) NOT NULL,
         CONSTRAINT PK_DimCustomer PRIMARY KEY (CustomerId)
@@ -15,7 +15,7 @@ GO
 
 -- Create DimEmployee Table
 CREATE TABLE
-    AdventureWorksDWH.EDW.DimEmployee (
+    EDW.DimEmployee (
         EmployeeId INT,
         EmployeeName NVARCHAR (255) NOT NULL,
 		Title VARCHAR(255),
@@ -27,7 +27,7 @@ GO
 
 -- Create DimProduct Table
 CREATE TABLE
-    AdventureWorksDWH.EDW.DimProduct (
+    EDW.DimProduct (
         ProductId INT,
         ProductName NVARCHAR (255) NOT NULL,
         ProductCategory NVARCHAR (100),
@@ -38,7 +38,7 @@ GO
 
 -- Create DimDate Table
 CREATE TABLE 
-    AdventureWorksDWH.EDW.DimDate (
+    EDW.DimDate (
         DateId INT NOT NULL,
         Date DATETIME NOT NULL,
         Day INT NOT NULL,
@@ -55,7 +55,7 @@ GO
 
 -- Create FactSale Table
 CREATE TABLE
-    AdventureWorksDWH.EDW.FactSale (
+    EDW.FactSale (
         SaleKey INT IDENTITY (1, 1) PRIMARY KEY,
         CustomerId INT,
         EmployeeId INT,
@@ -112,7 +112,7 @@ GO
 
 -- Insert Data into DimCustomer Table
 INSERT INTO 
-    AdventureWorksDWH.EDW.DimCustomer (
+    EDW.DimCustomer (
         CustomerId,
         CustomerName
     )
@@ -120,12 +120,12 @@ INSERT INTO
 		CustomerId,
 		CustomerName
 	FROM
-		AdventureWorksDWH.STAGE.DimCustomer
+		STAGE.DimCustomer
 GO
         
 -- Insert Data into DimEmployee Table
 INSERT INTO 
-	AdventureWorksDWH.EDW.DimEmployee (
+	EDW.DimEmployee (
 		EmployeeId,
 		EmployeeName,
 		Title,
@@ -139,12 +139,12 @@ INSERT INTO
         City,
         Country
     FROM 
-        AdventureWorksDWH.STAGE.DimEmployee;
+        STAGE.DimEmployee;
 GO
 
 --Insert Data into DimProduct Table
 INSERT INTO
-	AdventureWorksDWH.EDW.DimProduct (
+	EDW.DimProduct (
 		ProductId,
 		ProductName,
 		ProductCategory,
@@ -156,12 +156,12 @@ INSERT INTO
 		ProductCategory,
 		Price
 	FROM
-		AdventureWorksDWH.STAGE.DimProduct
+		STAGE.DimProduct
 GO
 
 --Insert Data into FactSale Table
 INSERT INTO
-    AdventureWorksDWH.EDW.FactSale (
+    EDW.FactSale (
         CustomerId,
         EmployeeId,
         ProductId,
@@ -183,9 +183,9 @@ INSERT INTO
 		f.LineTotal,
 		f.OrderDate
 	FROM
-		AdventureWorksDWH.STAGE.FactSale as f
-		INNER JOIN AdventureWorksDWH.EDW.DimCustomer AS c ON c.CustomerId = f.CustomerID
-		INNER JOIN AdventureWorksDWH.EDW.DimEmployee AS e ON e.EmployeeId = f.EmployeeId
-		INNER JOIN AdventureWorksDWH.EDW.DimProduct AS p ON p.ProductId = f.ProductID
-		INNER JOIN AdventureWorksDWH.EDW.DimDate as d ON d.Date = f.OrderDate
+		STAGE.FactSale as f
+		INNER JOIN EDW.DimCustomer AS c ON c.CustomerId = f.CustomerID
+		INNER JOIN EDW.DimEmployee AS e ON e.EmployeeId = f.EmployeeId
+		INNER JOIN EDW.DimProduct AS p ON p.ProductId = f.ProductID
+		INNER JOIN EDW.DimDate as d ON d.Date = f.OrderDate
 GO
