@@ -1,3 +1,6 @@
+CREATE DATABASE [AdventureWorksDWH]
+GO
+
 USE [AdventureWorksDWH]
 GO
 
@@ -233,7 +236,7 @@ SELECT
 	soh.OrderDate AS OrderDate
 FROM 
 	AdventureWorks2019.Sales.SalesOrderHeader soh
-	LEFT JOIN Sales.SalesOrderDetail  sod ON soh.SalesOrderID = sod.SalesOrderID
+	LEFT JOIN AdventureWorks2019.Sales.SalesOrderDetail  sod ON soh.SalesOrderID = sod.SalesOrderID
 	INNER JOIN STAGE.DimCustomer AS c ON c.CustomerId = soh.CustomerID
 	INNER JOIN STAGE.DimEmployee AS e ON e.EmployeeId = soh.SalesPersonID
 	INNER JOIN STAGE.DimProduct AS p ON p.ProductId = sod.ProductID

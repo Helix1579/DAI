@@ -1,3 +1,6 @@
+USE [master] 
+GO
+
 CREATE DATABASE [TestSourceDB] CONTAINMENT = NONE WITH CATALOG_COLLATION = DATABASE_DEFAULT
 GO
       ALTER DATABASE [TestSourceDB]
@@ -634,8 +637,11 @@ SET
       READ_WRITE
 GO
       /* Insert Data into TestSourceDB */
-      USE [TestSourceDB];
+USE [TestSourceDB];
 
+SET
+      identity_insert [Sales].[SalesOrderHeader] ON
+GO
 INSERT INTO
       Sales.SalesOrderHeader(
             [SalesOrderID],
@@ -691,31 +697,42 @@ SELECT
 FROM
       [AdventureWorks2019].[Sales].[SalesOrderHeader]
 GO
+SET
+      identity_insert [Sales].[SalesOrderHeader] OFF
+GO
 
+SET 
+	IDENTITY_INSERT [Sales].[SalesOrderDetail] ON
 
-INSERT INTO [Sales].[SalesOrderDetail]
-           ([SalesOrderID]
-           ,[CarrierTrackingNumber]
-           ,[OrderQty]
-           ,[ProductID]
-           ,[SpecialOfferID]
-           ,[UnitPrice]
-           ,[UnitPriceDiscount]
-           ,[rowguid]
-           ,[ModifiedDate])
-           
-     SELECT
-           [SalesOrderID]
-           ,[CarrierTrackingNumber]
-           ,[OrderQty]
-           ,[ProductID]
-           ,[SpecialOfferID]
-           ,[UnitPrice]
-           ,[UnitPriceDiscount]
-           ,[rowguid]
-           ,[ModifiedDate]
-  FROM AdventureWorks2019.[Sales].[SalesOrderDetail]
-  WHERE [SalesOrderID] IN (SELECT [SalesOrderID] FROM TestSourceDB.[Sales].[SalesOrderHeader] )
+INSERT INTO [Sales].[SalesOrderDetail] (
+    [SalesOrderDetailID], -- MUST be included when IDENTITY_INSERT is ON
+    [SalesOrderID],
+    [CarrierTrackingNumber],
+    [OrderQty],
+    [ProductID],
+    [SpecialOfferID],
+    [UnitPrice],
+    [UnitPriceDiscount],
+    [rowguid],
+    [ModifiedDate]
+)
+SELECT
+    [SalesOrderDetailID],  -- Pull this from the source table
+    [SalesOrderID],
+    [CarrierTrackingNumber],
+    [OrderQty],
+    [ProductID],
+    [SpecialOfferID],
+    [UnitPrice],
+    [UnitPriceDiscount],
+    [rowguid],
+    [ModifiedDate]
+FROM AdventureWorks2019.[Sales].[SalesOrderDetail]
+WHERE [SalesOrderID] IN (
+    SELECT [SalesOrderID]
+    FROM TestSourceDB.[Sales].[SalesOrderHeader]
+);
+SET IDENTITY_INSERT [Sales].[SalesOrderDetail] OFF;
 GO
 
 SET
@@ -786,6 +803,7 @@ WHERE
 SET
       identity_insert [Production].[Product] OFF
 GO
+
 SET
       identity_insert [Production].[ProductCategory] ON
 INSERT INTO
@@ -812,6 +830,7 @@ WHERE
 SET
       identity_insert [Production].[ProductCategory] OFF
 GO
+
 INSERT INTO
       [HumanResources].[Employee] (
             [BusinessEntityID],
@@ -856,6 +875,7 @@ WHERE
                   [Sales].[SalesOrderHeader]
       )
 GO
+
 INSERT INTO
       [Sales].[SalesPerson] (
             [BusinessEntityID],

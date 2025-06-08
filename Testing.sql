@@ -1,4 +1,4 @@
-USE AdventureWorksDWH
+USE TestSourceDWH
 GO
 
 CREATE SCHEMA ETL
@@ -19,8 +19,6 @@ GO
 INSERT INTO ETL.[LogUpdate] ([Table], [LastUpdate]) VALUES ('FactSale', 19980506)
 GO
 
-ALTER TABLE EDW.DimProduct DROP COLUMN ValidFrom, ValodTo;
-
 ALTER TABLE EDW.[DimProduct] ADD ValidFrom INT, ValidTo INT
 GO
 
@@ -29,6 +27,7 @@ GO
 
 ALTER TABLE EDW.[DimEmployee] ADD ValidFrom INT, ValidTo INT
 GO
+
 
 
 UPDATE EDW.[DimProduct] SET ValidFrom = 20100430, ValidTo = 20991231
@@ -169,7 +168,7 @@ DECLARE @LastLoadDate DATETIME
 		WHERE DateId = 19980506
 	)
 
-DELETE FROM STAGE.FactSale
+--DELETE FROM STAGE.FactSale
 
 INSERT INTO STAGE.FactSale
 	(
@@ -260,10 +259,6 @@ WHERE NOT EXISTS (
       AND E.ValidTo = 20991231
 )
 
-Drop table if EXISTS #temp
-
-Select * from #temp
-
 
 INSERT INTO EDW.DimCustomer 
 	(
@@ -282,6 +277,8 @@ INSERT INTO EDW.DimCustomer
 UPDATE EDW.DimCustomer SET ValidTo = @NewLoadDate-1
 	WHERE CustomerId IN (SELECT CustomerId FROM #temp) AND EDW.DimCustomer.ValidFrom < @NewLoadDate
 GO
+
+Drop Table #temp
 
 DECLARE @LastLoadDate INT
 	SET @LastLoadDate = (SELECT MAX(LastUpdate) FROM ETL.LogUpdate WHERE [Table] = 'DimEmployee')
