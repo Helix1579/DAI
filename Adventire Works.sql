@@ -1,4 +1,3 @@
--- database: :memory:
 USE [AdventureWorksDWH]
 GO
 
@@ -81,8 +80,8 @@ DROP CONSTRAINT PK_DimProduct;
 
 ALTER TABLE STAGE.DimDate
 DROP CONSTRAINT PK_DimDate;
-
 GO
+
 -- Adding New Primary Keys
 ALTER TABLE STAGE.DimCustomer ADD CustomerKey INT IDENTITY (1, 1) PRIMARY KEY;
 
@@ -233,7 +232,7 @@ SELECT
 	sod.LineTotal AS LineTotal,
 	soh.OrderDate AS OrderDate
 FROM 
-	TestSourceDB.Sales.SalesOrderHeader soh
+	AdventureWorks2019.Sales.SalesOrderHeader soh
 	LEFT JOIN Sales.SalesOrderDetail  sod ON soh.SalesOrderID = sod.SalesOrderID
 	INNER JOIN STAGE.DimCustomer AS c ON c.CustomerId = soh.CustomerID
 	INNER JOIN STAGE.DimEmployee AS e ON e.EmployeeId = soh.SalesPersonID

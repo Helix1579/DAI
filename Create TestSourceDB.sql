@@ -638,6 +638,7 @@ GO
 
 INSERT INTO
       Sales.SalesOrderHeader(
+            [SalesOrderID],
             [RevisionNumber],
             [OrderDate],
             [DueDate],
@@ -663,6 +664,7 @@ INSERT INTO
             [ModifiedDate]
       )
 SELECT
+      [SalesOrderID],
       [RevisionNumber],
       [OrderDate],
       [DueDate],
